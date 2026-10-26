@@ -46,6 +46,8 @@ export const userSchema = z.object({
   used_quota: z.number(),
   request_count: z.number(),
   group: z.string(),
+  // 所属部门（organizations.id）。0 或缺失表示未归属部门。
+  organization_id: z.number().optional(),
   aff_code: z.string().optional(),
   aff_count: z.number().optional(),
   aff_quota: z.number().optional(),

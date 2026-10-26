@@ -133,4 +133,7 @@ var channelNonSensitiveFields = map[string]struct{}{
 	"remark":              {},
 	"channel_info":        {},
 	"multi_key_mode":      {},
+	// public_name 是纯展示字段（对用户可见的渠道名），不含密钥或上游地址，
+	// 因此归入非敏感可写字段，具备 ChannelWrite 权限的管理员即可编辑。
+	"public_name": {},
 }

@@ -397,6 +397,20 @@ func SetApiRouter(router *gin.Engine) {
 			vendorRoute.DELETE("/:id", controller.DeleteVendorMeta)
 		}
 
+		// 部门（组织）与部门额度池。
+		// 用 handlePermissionRoute 而非 group.GET/POST：它同时把 Casbin 权限声明为
+		// Access Token 的 scope，router/access_token_scope_test.go 要求每个面板路由
+		// 恰好声明一次，漏了会挂测试。
+		organizationRoute := apiRouter.Group("/organizations")
+		organizationRoute.Use(middleware.AdminAuth())
+		{
+			handlePermissionRoute(organizationRoute, "GET", "/", authz.OrganizationRead, controller.GetAllOrganizations)
+			handlePermissionRoute(organizationRoute, "GET", "/:id", authz.OrganizationRead, controller.GetOrganizationMeta)
+			handlePermissionRoute(organizationRoute, "POST", "/", authz.OrganizationWrite, controller.CreateOrganization)
+			handlePermissionRoute(organizationRoute, "PUT", "/", authz.OrganizationWrite, controller.UpdateOrganization)
+			handlePermissionRoute(organizationRoute, "DELETE", "/:id", authz.OrganizationWrite, controller.DeleteOrganization)
+		}
+
 		modelsRoute := apiRouter.Group("/models")
 		modelsRoute.Use(middleware.AdminAuth())
 		{

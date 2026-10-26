@@ -73,6 +73,10 @@ var auditContentTemplates = map[string]string{
 	"subscription.plan_reset":       "Reset active subscriptions for plan ${plan_id}",
 	"subscription.user_plan_reset":  "Reset active plan ${plan_id} subscriptions for user ${target_user_id}",
 	"subscription.user_quota_reset": "Administrator reset the quota of subscription plan ${plan_title} (ID: ${plan_id})",
+
+	"organization.create": "Created organization ${name} with quota pool ${quota}",
+	"organization.update": "Updated organization ${name}, quota pool ${quota_before} -> ${quota_after}",
+	"organization.delete": "Deleted organization (ID: ${organization_id})",
 }
 
 func recordPasskeyDomainAudit(c *gin.Context, change *model.PasskeyDomainChange, confirmed bool, err error) {

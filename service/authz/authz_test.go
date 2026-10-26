@@ -158,6 +158,12 @@ func TestSetUserPermissionsStoresOnlyOverrides(t *testing.T) {
 			ActionBind: false,
 		},
 		ResourceAudit: {ActionRead: false},
+		// 未显式设置的资源按角色基线填充；admin 默认拥有 organization 的全部动作。
+		ResourceOrganization: {
+			ActionRead:  true,
+			ActionWrite: true,
+			"member":    true,
+		},
 	}, ExplicitUserPermissions(42))
 	assert.Equal(t, PermissionsMap{
 		ResourceChannel: {
@@ -190,6 +196,12 @@ func TestSetUserPermissionsStoresOnlyOverrides(t *testing.T) {
 			ActionBind: false,
 		},
 		ResourceAudit: {ActionRead: false},
+		// 同上：organization 未显式设置，按 admin 角色基线填充。
+		ResourceOrganization: {
+			ActionRead:  true,
+			ActionWrite: true,
+			"member":    true,
+		},
 	}, ExplicitUserPermissions(42))
 	assert.Empty(t, ExplicitUserOverrides(42))
 }

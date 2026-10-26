@@ -56,6 +56,19 @@ func AdjustUserQuota(userID, operatorRole int, mode string, value int) (*UserQuo
 		if err != nil {
 			return ErrWalletQuotaLimitExceeded
 		}
+		// 部门额度校验：成员余额增加即从部门池「分配」，减少即「归还」。
+		// 与额度更新在同一事务内，池子不足时整体回滚，成员余额不变。
+		// 未归属部门的用户（OrganizationId=0）直接放行，行为与改造前一致。
+		if user.OrganizationId > 0 && after != user.Quota {
+			delta := int64(after) - int64(user.Quota)
+			if delta > 0 {
+				if err := AllocateQuota(tx, user.OrganizationId, int(delta)); err != nil {
+					return err
+				}
+			} else if err := ReleaseQuota(tx, user.OrganizationId, int(-delta)); err != nil {
+				return err
+			}
+		}
 		// An unchanged override is a successful operation, including on MySQL
 		// configurations that count only changed rows in RowsAffected.
 		if after != user.Quota {

@@ -390,6 +390,24 @@ export function useCommonLogsColumns(
       },
     ]
 
+    // 普通用户看到的「提供商」列：只显示后端下发的渠道公开名（channels.public_name），
+    // 不显示渠道 ID、重试链、多 key 等管理诊断信息。未配置公开名的渠道，后端返回空串，
+    // 此列对用户隐藏（列级 visibility 由 enableHiding + 空值不渲染共同保证）。
+    if (!isAdmin) {
+      columns.push({
+        id: 'provider',
+        header: t('Provider'),
+        accessorFn: (row) => row.channel_name,
+        cell: function ProviderCell({ row }) {
+          const name = row.original.channel_name
+          if (!name) return <span className='text-muted-foreground'>-</span>
+          return <StatusBadge label={name} size='sm' showDot={false} variant='neutral' />
+        },
+        enableSorting: false,
+        size: 140,
+      })
+    }
+
     if (isAdmin) {
       columns.push(
         {

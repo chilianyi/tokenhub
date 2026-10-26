@@ -114,7 +114,9 @@ func TestLegacyLogOtherVisibilityIsRoleSeparated(t *testing.T) {
 		formatUserLogs(logs, 10)
 
 		assert.Equal(t, 11, logs[0].Id)
-		assert.Equal(t, 77, logs[0].ChannelId)
+		// 内部渠道 ID 与内部渠道名都不下发：用户只应看到 channels.public_name。
+		// 本用例的渠道未配置 public_name（且 DB 为空），因此两者均为空。
+		assert.Equal(t, 0, logs[0].ChannelId)
 		assert.Empty(t, logs[0].ChannelName)
 		parsed, err := common.StrToMap(logs[0].Other)
 		require.NoError(t, err)

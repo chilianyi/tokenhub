@@ -93,6 +93,18 @@ func creditTopUpQuota(tx *gorm.DB, userId int, creditedQuota int, updates map[st
 		return err
 	}
 
+	// 部门额度校验：充值等同「从部门池分配额度给该成员」。
+	// 未归属部门的用户（organization_id=0）不受影响。
+	// 在同一事务内先分配、再入账，池子不足时抛错回滚，成员余额不变。
+	var orgId int
+	if err := tx.Model(&User{}).Where("id = ?", userId).
+		Select("organization_id").Scan(&orgId).Error; err != nil {
+		return err
+	}
+	if err := AllocateQuota(tx, orgId, creditedQuota); err != nil {
+		return err
+	}
+
 	updateFields := make(map[string]any, len(updates)+1)
 	maps.Copy(updateFields, updates)
 	updateFields["quota"] = gorm.Expr("quota + ?", creditedQuota)

@@ -113,10 +113,64 @@ func assignDisplayLogIds(logs []*Log, startIdx int) {
 
 func formatUserLogs(logs []*Log, startIdx int) {
 	for i := range logs {
+		// 渠道名替换为对用户的公开名：未配置 PublicName 的渠道保持空，
+		// 前端据此整列不显示。不暴露内部渠道名、key、base_url。
 		logs[i].ChannelName = ""
 		logs[i].Other = formatLogOtherJSON(logs[i].Other, logOtherVisibilityUser)
 	}
+	fillChannelPublicNames(logs)
+	// 内部渠道 ID 也不下发给用户：用户只需要知道「走了哪个供应商」。
+	// 渠道号会暴露内部渠道数量与切换历史，属于运维信息。
+	for i := range logs {
+		logs[i].ChannelId = 0
+	}
 	assignDisplayLogIds(logs, startIdx)
+}
+
+// fillChannelPublicNames 用 channels.public_name 填充 ChannelName。
+//
+// 只填 public_name，不填内部 name —— 内部命名可能包含供应商敏感信息或实验代号。
+// 优先走内存缓存（model/channel_cache.go CacheGetChannel），未命中才批量查库。
+func fillChannelPublicNames(logs []*Log) {
+	channelIds := types.NewSet[int]()
+	for _, log := range logs {
+		if log.ChannelId != 0 {
+			channelIds.Add(log.ChannelId)
+		}
+	}
+	if channelIds.Len() == 0 {
+		return
+	}
+
+	publicNames := make(map[int]string, channelIds.Len())
+	if common.MemoryCacheEnabled {
+		for _, id := range channelIds.Items() {
+			if ch, err := CacheGetChannel(id); err == nil && ch.PublicName != nil {
+				publicNames[id] = *ch.PublicName
+			}
+		}
+	} else {
+		var rows []struct {
+			Id         int     `gorm:"column:id"`
+			PublicName *string `gorm:"column:public_name"`
+		}
+		if err := DB.Table("channels").Select("id, public_name").
+			Where("id IN ?", channelIds.Items()).Find(&rows).Error; err != nil {
+			common.SysError(common.LogText("failed to load channel public names: %s", err.Error()))
+			return
+		}
+		for _, r := range rows {
+			if r.PublicName != nil {
+				publicNames[r.Id] = *r.PublicName
+			}
+		}
+	}
+
+	for _, log := range logs {
+		if name, ok := publicNames[log.ChannelId]; ok {
+			log.ChannelName = name
+		}
+	}
 }
 
 // FormatAdminLogs removes root-only diagnostics while retaining operational

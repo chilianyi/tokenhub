@@ -88,7 +88,9 @@ func TestProcessChannelErrorUsesSnapshotWithoutLeakingChannelMetadata(t *testing
 	require.NoError(t, err)
 	require.Equal(t, int64(1), total)
 	require.Len(t, logs, 1)
-	assert.Equal(t, channelSnapshot.ChannelId, logs[0].ChannelId)
+	// 用户视图不再下发内部渠道 ID 与内部渠道名，只可能拿到 channels.public_name。
+	// 本用例未配置 public_name，因此两者均为空。
+	assert.Equal(t, 0, logs[0].ChannelId)
 	assert.Empty(t, logs[0].ChannelName)
 	userOther, err := common.StrToMap(logs[0].Other)
 	require.NoError(t, err)

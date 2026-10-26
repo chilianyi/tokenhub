@@ -46,7 +46,7 @@ import type { User } from '../types'
 import { DataTableRowActions } from './data-table-row-actions'
 import { UserQuotaCell } from './user-quota-cell'
 
-export function useUsersColumns(): ColumnDef<User>[] {
+export function useUsersColumns(organizationNames: Record<number, string> = {}): ColumnDef<User>[] {
   const { t } = useTranslation()
   const currencyConfig = useSystemConfigStore((state) => state.config.currency)
   const { meta: currency } = getCurrencyDisplay()
@@ -216,6 +216,24 @@ export function useUsersColumns(): ColumnDef<User>[] {
         meta: { mobileOrder: 30 },
       },
       {
+        id: 'organization',
+        header: t('Organization'),
+        cell: ({ row }) => {
+          const orgId = row.original.organization_id ?? 0
+          if (!orgId) {
+            return <span className='text-muted-foreground text-sm'>-</span>
+          }
+          const name = organizationNames[orgId]
+          return (
+            <BadgeCell>
+              <span className='text-sm'>{name || `#${orgId}`}</span>
+            </BadgeCell>
+          )
+        },
+        size: 160,
+        meta: { mobileOrder: 35 },
+      },
+      {
         accessorKey: 'role',
         header: t('Role'),
         cell: ({ row }) => {
@@ -298,6 +316,6 @@ export function useUsersColumns(): ColumnDef<User>[] {
     ],
     // formatQuota reads the currency configuration from the store.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [t, quotaUnit, currencyConfig]
+    [t, quotaUnit, currencyConfig, organizationNames]
   )
 }

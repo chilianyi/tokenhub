@@ -50,6 +50,10 @@ type Channel struct {
 	ParamOverride     *string `json:"param_override" gorm:"type:text"`
 	HeaderOverride    *string `json:"header_override" gorm:"type:text"`
 	Remark            *string `json:"remark" gorm:"type:varchar(255)" validate:"max=255"`
+	// PublicName 对普通用户可见的渠道名称（如「中云」「金山云」「FlagOS」）。
+	// 留空表示该渠道对用户不可见——灰度/测试渠道用这个开关隐藏。
+	// 仅用于展示，不含任何密钥或上游地址信息。
+	PublicName *string `json:"public_name" gorm:"type:varchar(64)"`
 	// add after v0.8.5
 	ChannelInfo ChannelInfo `json:"channel_info" gorm:"type:json"`
 

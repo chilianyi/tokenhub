@@ -98,6 +98,9 @@ type User struct {
 	UsedQuota            int                        `json:"used_quota" gorm:"type:int;default:0;column:used_quota"` // used quota
 	RequestCount         int                        `json:"request_count" gorm:"type:int;default:0;"`               // request number
 	Group                string                     `json:"group" gorm:"type:varchar(64);default:'default'"`
+	// OrganizationId 所属部门（organizations.id）。0 = 未归属部门，不受部门额度约束。
+	// 部门额度为「分配池」语义：成员额度总和 <= 部门额度，见 model/organization.go。
+	OrganizationId       int                        `json:"organization_id" gorm:"type:int;default:0;index"`
 	AffCode              string                     `json:"aff_code" gorm:"type:varchar(32);column:aff_code;uniqueIndex"`
 	AffCount             int                        `json:"aff_count" gorm:"type:int;default:0;column:aff_count"`
 	AffQuota             int                        `json:"aff_quota" gorm:"type:int;default:0;column:aff_quota"`           // 邀请剩余额度
@@ -882,6 +885,8 @@ func (user *User) EditWithTx(tx *gorm.DB, updatePassword bool) error {
 		"display_name": newUser.DisplayName,
 		"group":        newUser.Group,
 		"remark":       newUser.Remark,
+		// 部门归属：0 也是合法值（移出部门），map 写法不受 Updates 忽略零值影响
+		"organization_id": newUser.OrganizationId,
 	}
 	if updatePassword {
 		updates["password"] = newUser.Password
@@ -890,6 +895,21 @@ func (user *User) EditWithTx(tx *gorm.DB, updatePassword bool) error {
 	current := User{}
 	if err = tx.First(&current, user.Id).Error; err != nil {
 		return err
+	}
+	// 部门变更时同步迁移额度归属，否则两个部门的 allocated 都会漂移：
+	//   离开旧部门 → 旧部门释放该成员余额
+	//   进入新部门 → 新部门分配同等额度（新部门池子不足则整体回滚，拒绝换部门）
+	if current.OrganizationId != newUser.OrganizationId {
+		if current.OrganizationId > 0 && current.Quota > 0 {
+			if err = ReleaseQuota(tx, current.OrganizationId, current.Quota); err != nil {
+				return err
+			}
+		}
+		if newUser.OrganizationId > 0 && current.Quota > 0 {
+			if err = AllocateQuota(tx, newUser.OrganizationId, current.Quota); err != nil {
+				return err
+			}
+		}
 	}
 	authChanged := (updatePassword && current.Password != newUser.Password) || current.Group != newUser.Group
 	if authChanged {

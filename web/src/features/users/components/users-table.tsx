@@ -36,6 +36,7 @@ import {
 } from '@/lib/server-error-message'
 
 import { getGroups, getUsers, searchUsers } from '../api'
+import { getOrganizations } from '@/features/organizations/api'
 import {
   USER_STATUS,
   getUserStatusOptions,
@@ -64,7 +65,22 @@ function isDisabledUserRow(user: User) {
 
 export function UsersTable() {
   const { t } = useTranslation()
-  const columns = useUsersColumns()
+  // 部门名映射：用户列表只返回 organization_id，这里拉一次全量部门做 id → name。
+  // 组织数量是部门级规模（几十个），一次性拉取并缓存，不随分页变化。
+  const { data: organizationsData } = useQuery({
+    queryKey: ['organizations', 'all-for-user-list'],
+    queryFn: async () => {
+      const result = await getOrganizations({ p: 1, page_size: 100 })
+      return result.success ? result.data?.items ?? [] : []
+    },
+    staleTime: 5 * 60 * 1000,
+  })
+  const organizationNames = useMemo(() => {
+    const map: Record<number, string> = {}
+    for (const org of organizationsData ?? []) map[org.id] = org.name
+    return map
+  }, [organizationsData])
+  const columns = useUsersColumns(organizationNames)
   const { refreshTrigger } = useUsers()
   const isMobile = useMediaQuery('(max-width: 640px)')
   const [sorting, setSorting] = useState<SortingState>([])
