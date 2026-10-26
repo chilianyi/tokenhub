@@ -6,6 +6,10 @@
 
 **An AI gateway for models, applications, and agents**
 
+> **This repository is a modified version of New API** maintained by BAAI for the
+> TokenHub platform. See [TOKENHUB.md](./TOKENHUB.md) for the list of changes.
+> Upstream project: https://github.com/QuantumNous/new-api
+
 <p align="center">
   <a href="./README.zh_CN.md">简体中文</a> |
   <a href="./README.zh_TW.md">繁體中文</a> |
