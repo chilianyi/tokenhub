@@ -41,7 +41,15 @@ export function OrganizationsTable() {
   const { refreshTrigger } = useOrganizations()
   const isMobile = useMediaQuery('(max-width: 640px)')
 
-  const { globalFilter, pagination, ensurePageInRange } = useTableUrlState({
+  const {
+    globalFilter,
+    onGlobalFilterChange,
+    columnFilters,
+    onColumnFiltersChange,
+    pagination,
+    onPaginationChange,
+    ensurePageInRange,
+  } = useTableUrlState({
     search: route.useSearch(),
     navigate: route.useNavigate(),
     pagination: { defaultPage: 1, defaultPageSize: isMobile ? 10 : 20 },
@@ -74,11 +82,17 @@ export function OrganizationsTable() {
     data: data?.items ?? [],
     columns,
     getRowId: (row) => String(row.id),
+    // columnFilters 必须传入：DataTableToolbar 会读 table.getState().columnFilters.length，
+    // 缺省会直接 TypeError 崩溃。
+    columnFilters,
+    onColumnFiltersChange,
     globalFilter,
     pagination,
     manualPagination: true,
     manualFiltering: true,
     totalCount: data?.total ?? 0,
+    onPaginationChange,
+    onGlobalFilterChange,
     ensurePageInRange,
   })
 
