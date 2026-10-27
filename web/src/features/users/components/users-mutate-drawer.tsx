@@ -19,7 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery } from '@tanstack/react-query'
 import { Pencil } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -87,6 +87,7 @@ import {
   getGroups,
   getPermissionCatalog,
 } from '../api'
+import { getOrganizations } from '@/features/organizations/api'
 import { BINDING_FIELDS, ERROR_MESSAGES, SUCCESS_MESSAGES } from '../constants'
 import {
   userFormSchema,
@@ -128,6 +129,27 @@ export function UsersMutateDrawer({
   })
 
   const groups = groupsData?.data || []
+
+  // 部门列表：创建/编辑用户时可直接指定所属部门。
+  const { data: organizationsData } = useQuery({
+    queryKey: ['organizations', 'all-for-user-form'],
+    queryFn: async () => {
+      const result = await getOrganizations({ p: 1, page_size: 100 })
+      return result.success ? (result.data?.items ?? []) : []
+    },
+    staleTime: 5 * 60 * 1000,
+    enabled: open,
+  })
+  const organizationOptions = useMemo(
+    () => [
+      { value: '0', label: t('No organization') },
+      ...(organizationsData ?? []).map((org) => ({
+        value: String(org.id),
+        label: org.name,
+      })),
+    ],
+    [organizationsData, t]
+  )
 
   // Permission catalog is owned by the backend; fetched once and reused.
   const { data: permissionCatalog = EMPTY_PERMISSION_CATALOG } = useQuery({
@@ -381,6 +403,33 @@ export function UsersMutateDrawer({
                       </FormControl>
                       <FormDescription>
                         {t('Leave empty to use username')}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name='organization_id'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('Organization')}</FormLabel>
+                      <FormControl>
+                        <Combobox
+                          options={organizationOptions}
+                          onValueChange={(v) =>
+                            field.onChange(Number(v) || 0)
+                          }
+                          value={String(field.value ?? 0)}
+                          className='w-full'
+                          placeholder={t('Select an organization')}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {t(
+                          'Member quota is allocated from the organization quota pool.'
+                        )}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>

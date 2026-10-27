@@ -126,6 +126,7 @@ export interface UserFormData {
   role?: number // Only used when creating user
   quota?: number // Only used when updating user
   group?: string // Only used when updating user
+  organization_id?: number // 所属部门（0 = 未归属），创建与更新均可设置
   remark?: string // Only used when updating user
   admin_permissions?: AdminPermissionMatrix
 }
